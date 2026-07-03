@@ -23,6 +23,12 @@ function num(name: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function list(name: string, fallback: string[]): string[] {
+  const value = process.env[name];
+  if (value === undefined || value.trim() === '') return fallback;
+  return value.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
 export const env = {
   port: num('PORT', 3000),
   nodeEnv: process.env.NODE_ENV ?? 'development',
@@ -42,6 +48,20 @@ export const env = {
   maxDailyLossPct: num('MAX_DAILY_LOSS_PCT', 5),
 
   databasePath: process.env.DATABASE_PATH ?? './data/trading-bot.sqlite',
+
+  // --- Estrategia contrarian (funding rate + RSI) ---
+  contrarianEnabled: bool('CONTRARIAN_ENABLED', false),
+  contrarianSymbols: list('CONTRARIAN_SYMBOLS', []),
+  contrarianTimeframe: process.env.CONTRARIAN_TIMEFRAME ?? '15m',
+  contrarianCheckIntervalMinutes: num('CONTRARIAN_CHECK_INTERVAL_MINUTES', 15),
+  // 0.0005 = 0.05%, funding rate típico "extremo" en perpetuos de cripto
+  contrarianFundingRateThreshold: num('CONTRARIAN_FUNDING_RATE_THRESHOLD', 0.0005),
+  contrarianRsiOverbought: num('CONTRARIAN_RSI_OVERBOUGHT', 75),
+  contrarianRsiOversold: num('CONTRARIAN_RSI_OVERSOLD', 25),
+
+  // --- Watcher de liquidaciones en tiempo real (dato real de Bybit, sin Coinglass) ---
+  liquidationWatchEnabled: bool('LIQUIDATION_WATCH_ENABLED', false),
+  liquidationWatchSymbols: list('LIQUIDATION_WATCH_SYMBOLS', []),
 };
 
 if (!env.isProduction && env.tradingviewWebhookSecret === 'cambia-esto-por-un-secreto-largo-y-aleatorio') {

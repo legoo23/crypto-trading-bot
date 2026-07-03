@@ -92,6 +92,44 @@ Koncorde), el campo Message del diálogo se ignora — el string lo controla el 
 de símbolo/timeframe (`TRADINGVIEW_SYMBOL_MAP`) que hace falta porque TradingView y ccxt/
 Bybit no usan el mismo formato de ticker ni de resolución.
 
+## Estrategias adicionales generadas por el bot (no vienen de TradingView)
+
+Además de las señales que llegan por webhook, el bot puede generar sus propias
+señales a partir de datos que pide directamente a Bybit. Ambas pasan por el mismo
+pipeline de confirmación/riesgo/ejecución, con su propio nombre de `strategy` para
+que se vean separadas en el dashboard.
+
+### Contrarian por funding rate (`src/strategy/contrarian.ts`)
+
+Revisa periódicamente el funding rate y el RSI de los símbolos configurados. Cuando
+el funding rate está en un extremo (mercado "abarrotado" de un lado) y el RSI
+confirma agotamiento en la misma dirección, genera una señal contraria a la
+mayoría (ver el comentario en el código para el razonamiento completo). Deshabilitada
+por defecto:
+
+```
+CONTRARIAN_ENABLED=true
+CONTRARIAN_SYMBOLS=BTC/USDT:USDT,ETH/USDT:USDT
+CONTRARIAN_TIMEFRAME=15m
+CONTRARIAN_CHECK_INTERVAL_MINUTES=15
+CONTRARIAN_FUNDING_RATE_THRESHOLD=0.0005
+CONTRARIAN_RSI_OVERBOUGHT=75
+CONTRARIAN_RSI_OVERSOLD=25
+```
+
+### Liquidaciones reales de Bybit (`src/exchange/liquidationWatcher.ts`)
+
+Escucha el feed público de liquidaciones de Bybit (dato real, no estimado, sin
+Coinglass ni ningún servicio de terceros) y lo muestra en el dashboard. Por ahora
+es solo informativo: **no dispara ninguna orden automáticamente**. Ver
+[`docs/liquidity-without-coinglass.md`](docs/liquidity-without-coinglass.md) para
+el detalle de cómo funciona y qué alternativas existen. Deshabilitado por defecto:
+
+```
+LIQUIDATION_WATCH_ENABLED=true
+LIQUIDATION_WATCH_SYMBOLS=BTC/USDT:USDT,ETH/USDT:USDT
+```
+
 ## Kill switch
 
 - Se activa automáticamente si se alcanza `MAX_DAILY_LOSS_PCT` de pérdida en el día.
@@ -127,9 +165,16 @@ Este es un MVP funcional pensado para validarse primero en testnet:
 - [x] Reconciliación periódica (cada 30s) contra `fetchPositions()` de Bybit para detectar
   cierres por SL/TP y actualizar el P&L — el precio de salida es un estimado (última vela
   de 1m), no el precio exacto de ejecución del SL/TP
+- [x] Múltiples estrategias independientes: TL Alerts/Supertrend/Koncorde vía TradingView
+  (ver `docs/pine-integration.md`) + contrarian por funding rate generado por el bot
+- [x] Watcher de liquidaciones reales de Bybit (informativo, sin Coinglass)
 - [ ] Backtesting histórico de la estrategia antes de operar en vivo
-- [ ] Múltiples estrategias configurables simultáneamente
 - [ ] P&L exacto cruzando contra `fetchMyTrades`/`fetchClosedOrders` en vez de estimado
+- [ ] Niveles de liquidez futuros estimados (heatmap sintético vía Open Interest, ver
+  `docs/liquidity-without-coinglass.md`) — no implementado, es una estimación con supuestos
+- [ ] Similitudes históricas de BTC proyectadas a futuro — pendiente de decidir alcance,
+  ver advertencia de riesgo en la conversación: en el mejor de los casos debería ser solo
+  informativo en el dashboard, no un disparador automático de órdenes
 
 Antes de dejarlo corriendo en real sin supervisión, valida en testnet que la reconciliación
 detecta correctamente los cierres por SL/TP y que el P&L estimado es razonablemente preciso

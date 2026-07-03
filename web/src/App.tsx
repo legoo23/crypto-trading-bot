@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { StatusBar } from './components/StatusBar.tsx';
 import { TradesTable } from './components/TradesTable.tsx';
 import { SignalsTable } from './components/SignalsTable.tsx';
-import { Signal, Status, Trade } from './types.ts';
+import { LiquidationsPanel } from './components/LiquidationsPanel.tsx';
+import { Liquidation, LiquidationCluster, Signal, Status, Trade } from './types.ts';
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -15,19 +16,25 @@ export default function App() {
   const [openTrades, setOpenTrades] = useState<Trade[]>([]);
   const [recentTrades, setRecentTrades] = useState<Trade[]>([]);
   const [signals, setSignals] = useState<Signal[]>([]);
+  const [liquidations, setLiquidations] = useState<Liquidation[]>([]);
+  const [liquidationSummary, setLiquidationSummary] = useState<LiquidationCluster[]>([]);
 
   async function refresh() {
     try {
-      const [statusData, openData, recentData, signalsData] = await Promise.all([
+      const [statusData, openData, recentData, signalsData, liqData, liqSummaryData] = await Promise.all([
         fetchJson<Status>('/api/status'),
         fetchJson<Trade[]>('/api/trades/open'),
         fetchJson<Trade[]>('/api/trades/recent'),
         fetchJson<Signal[]>('/api/signals/recent'),
+        fetchJson<Liquidation[]>('/api/liquidations/recent'),
+        fetchJson<LiquidationCluster[]>('/api/liquidations/summary?minutes=15'),
       ]);
       setStatus(statusData);
       setOpenTrades(openData);
       setRecentTrades(recentData);
       setSignals(signalsData);
+      setLiquidations(liqData);
+      setLiquidationSummary(liqSummaryData);
     } catch (err) {
       console.error('Error refrescando dashboard:', err);
     }
@@ -53,6 +60,7 @@ export default function App() {
       <TradesTable trades={openTrades} title="Posiciones abiertas" />
       <TradesTable trades={recentTrades} title="Historial reciente" />
       <SignalsTable signals={signals} />
+      <LiquidationsPanel recent={liquidations} summary={liquidationSummary} />
     </div>
   );
 }

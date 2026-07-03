@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { bybit } from '../exchange/bybit.ts';
 import { listOpenTrades, listRecentSignals, listRecentTrades } from '../execution/orderExecutor.ts';
+import { listRecentLiquidations, summarizeRecentLiquidations } from '../exchange/liquidationWatcher.ts';
 import {
   disengageKillSwitch,
   engageKillSwitch,
@@ -48,4 +49,13 @@ apiRouter.post('/kill-switch/engage', (req, res) => {
 apiRouter.post('/kill-switch/disengage', (_req, res) => {
   disengageKillSwitch();
   res.json({ ok: true });
+});
+
+apiRouter.get('/liquidations/recent', (_req, res) => {
+  res.json(listRecentLiquidations());
+});
+
+apiRouter.get('/liquidations/summary', (req, res) => {
+  const minutes = Number(req.query.minutes) || 15;
+  res.json(summarizeRecentLiquidations(minutes));
 });

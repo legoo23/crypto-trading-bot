@@ -7,6 +7,8 @@ import { env } from './src/config/env.ts';
 import { tradingviewWebhookRouter } from './src/webhook/tradingview.ts';
 import { apiRouter } from './src/api/routes.ts';
 import { startReconciliationLoop } from './src/execution/reconciler.ts';
+import { startContrarianLoop } from './src/signals/contrarianScheduler.ts';
+import { startLiquidationWatcher } from './src/exchange/liquidationWatcher.ts';
 
 // El proyecto siempre se arranca desde la raíz (tsx en dev, node dist/server.cjs en
 // producción vía el Dockerfile/npm start), así que process.cwd() es estable en ambos
@@ -52,6 +54,8 @@ async function start() {
   }
 
   startReconciliationLoop();
+  startContrarianLoop();
+  startLiquidationWatcher();
 
   app.listen(env.port, () => {
     console.log(`[server] Escuchando en http://localhost:${env.port} (modo Bybit: ${env.bybitTestnet ? 'TESTNET' : 'LIVE'})`);

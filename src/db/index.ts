@@ -45,6 +45,17 @@ CREATE TABLE IF NOT EXISTS bot_state (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS liquidations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  received_at TEXT NOT NULL,
+  symbol TEXT NOT NULL,
+  side TEXT,
+  price REAL NOT NULL,
+  quote_value REAL,
+  exchange_timestamp INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_liquidations_symbol_time ON liquidations(symbol, received_at);
 `);
 
 export function getState(key: string): string | undefined {

@@ -32,3 +32,20 @@ export type Signal = {
   accepted: number;
   reject_reason: string | null;
 };
+
+export type Liquidation = {
+  id: number;
+  received_at: string;
+  symbol: string;
+  side: string | null;
+  price: number;
+  quote_value: number | null;
+  exchange_timestamp: number | null;
+};
+
+export type LiquidationCluster = {
+  symbol: string;
+  side: string;
+  count: number;
+  totalQuoteValue: number;
+};

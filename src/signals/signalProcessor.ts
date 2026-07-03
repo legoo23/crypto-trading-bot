@@ -7,6 +7,80 @@ import { notifyTelegram } from '../notify/telegram.ts';
 import { TradingViewAlertPayload } from '../webhook/types.ts';
 import { mapTradingViewSymbol, mapTradingViewTimeframe } from '../config/tradingviewMapping.ts';
 
+/**
+ * Lógica compartida de confirmación + riesgo + ejecución. La usa tanto el webhook de
+ * TradingView como cualquier estrategia generada internamente por el bot (ej. contrarian
+ * por funding rate), para que todas las fuentes de señales pasen por el mismo filtro.
+ */
+export async function processSignal(signal: TradeSignal, rawPayload: unknown): Promise<{ accepted: boolean; reason?: string }> {
+  const balance = await bybit.fetchBalanceUSDT();
+  const riskCheck = checkRiskBeforeTrade(balance);
+  if (!riskCheck.allowed) {
+    const signalId = recordSignal({
+      symbol: signal.symbol,
+      side: signal.side,
+      action: 'entry',
+      strategy: signal.strategy,
+      rawPayload,
+      accepted: false,
+      rejectReason: riskCheck.reason,
+    });
+    await notifyTelegram(`⛔ Señal rechazada por gestión de riesgo (#${signalId})\n${signal.symbol} ${signal.side} [${signal.strategy}]\nMotivo: ${riskCheck.reason}`);
+    return { accepted: false, reason: riskCheck.reason };
+  }
+
+  const confirmation = await confirmSignal(signal);
+  if (!confirmation.accepted) {
+    const signalId = recordSignal({
+      symbol: signal.symbol,
+      side: signal.side,
+      action: 'entry',
+      strategy: signal.strategy,
+      rawPayload,
+      accepted: false,
+      rejectReason: confirmation.reason,
+    });
+    await notifyTelegram(`⚠️ Señal descartada tras confirmación (#${signalId})\n${signal.symbol} ${signal.side} [${signal.strategy}]\nMotivo: ${confirmation.reason}`);
+    return { accepted: false, reason: confirmation.reason };
+  }
+
+  const signalId = recordSignal({
+    symbol: signal.symbol,
+    side: signal.side,
+    action: 'entry',
+    strategy: signal.strategy,
+    rawPayload,
+    accepted: true,
+  });
+
+  const amount = calculatePositionSize({
+    accountBalance: balance,
+    entryPrice: confirmation.entryPrice,
+    stopLossPrice: confirmation.stopLossPrice,
+  });
+
+  if (amount <= 0) {
+    await notifyTelegram(`⚠️ Señal aceptada pero tamaño de posición calculado es 0 (#${signalId})`);
+    return { accepted: false, reason: 'Tamaño de posición inválido' };
+  }
+
+  await executeEntry({
+    signalId,
+    symbol: signal.symbol,
+    side: signal.side,
+    amount,
+    entryPrice: confirmation.entryPrice,
+    stopLossPrice: confirmation.stopLossPrice,
+    takeProfitPrice: confirmation.takeProfitPrice,
+  });
+
+  await notifyTelegram(
+    `✅ Entrada ejecutada (#${signalId})\n${signal.symbol} ${signal.side.toUpperCase()} [${signal.strategy}]\nEntrada: ${confirmation.entryPrice}\nSL: ${confirmation.stopLossPrice.toFixed(4)} · TP: ${confirmation.takeProfitPrice.toFixed(4)}\nTamaño: ${amount.toFixed(6)}\nModo: ${bybit.isTestnet ? 'TESTNET' : 'LIVE'}`,
+  );
+
+  return { accepted: true };
+}
+
 export async function processTradingViewAlert(payload: TradingViewAlertPayload): Promise<{ accepted: boolean; reason?: string }> {
   // El ticker/resolución que manda TradingView no coincide con el formato de símbolo/timeframe
   // que usa ccxt contra Bybit (ej. "BTCUSDT.P" -> "BTC/USDT:USDT", "60" -> "1h"). Se traduce una
@@ -36,70 +110,5 @@ export async function processTradingViewAlert(payload: TradingViewAlertPayload):
     entryTimeframe: timeframe,
   };
 
-  const balance = await bybit.fetchBalanceUSDT();
-  const riskCheck = checkRiskBeforeTrade(balance);
-  if (!riskCheck.allowed) {
-    const signalId = recordSignal({
-      symbol,
-      side: payload.side,
-      action: payload.action,
-      strategy: payload.strategy,
-      rawPayload: payload,
-      accepted: false,
-      rejectReason: riskCheck.reason,
-    });
-    await notifyTelegram(`⛔ Señal rechazada por gestión de riesgo (#${signalId})\n${symbol} ${payload.side} [${payload.strategy}]\nMotivo: ${riskCheck.reason}`);
-    return { accepted: false, reason: riskCheck.reason };
-  }
-
-  const confirmation = await confirmSignal(signal);
-  if (!confirmation.accepted) {
-    const signalId = recordSignal({
-      symbol,
-      side: payload.side,
-      action: payload.action,
-      strategy: payload.strategy,
-      rawPayload: payload,
-      accepted: false,
-      rejectReason: confirmation.reason,
-    });
-    await notifyTelegram(`⚠️ Señal descartada tras confirmación (#${signalId})\n${symbol} ${payload.side} [${payload.strategy}]\nMotivo: ${confirmation.reason}`);
-    return { accepted: false, reason: confirmation.reason };
-  }
-
-  const signalId = recordSignal({
-    symbol,
-    side: payload.side,
-    action: payload.action,
-    strategy: payload.strategy,
-    rawPayload: payload,
-    accepted: true,
-  });
-
-  const amount = calculatePositionSize({
-    accountBalance: balance,
-    entryPrice: confirmation.entryPrice,
-    stopLossPrice: confirmation.stopLossPrice,
-  });
-
-  if (amount <= 0) {
-    await notifyTelegram(`⚠️ Señal aceptada pero tamaño de posición calculado es 0 (#${signalId})`);
-    return { accepted: false, reason: 'Tamaño de posición inválido' };
-  }
-
-  await executeEntry({
-    signalId,
-    symbol,
-    side: payload.side,
-    amount,
-    entryPrice: confirmation.entryPrice,
-    stopLossPrice: confirmation.stopLossPrice,
-    takeProfitPrice: confirmation.takeProfitPrice,
-  });
-
-  await notifyTelegram(
-    `✅ Entrada ejecutada (#${signalId})\n${symbol} ${payload.side.toUpperCase()} [${payload.strategy}]\nEntrada: ${confirmation.entryPrice}\nSL: ${confirmation.stopLossPrice.toFixed(4)} · TP: ${confirmation.takeProfitPrice.toFixed(4)}\nTamaño: ${amount.toFixed(6)}\nModo: ${bybit.isTestnet ? 'TESTNET' : 'LIVE'}`,
-  );
-
-  return { accepted: true };
+  return processSignal(signal, payload);
 }
