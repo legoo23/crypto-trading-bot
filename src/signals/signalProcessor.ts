@@ -5,13 +5,20 @@ import { calculatePositionSize, checkRiskBeforeTrade } from '../risk/riskManager
 import { executeEntry, recordSignal } from '../execution/orderExecutor.ts';
 import { notifyTelegram } from '../notify/telegram.ts';
 import { TradingViewAlertPayload } from '../webhook/types.ts';
+import { mapTradingViewSymbol, mapTradingViewTimeframe } from '../config/tradingviewMapping.ts';
 
 export async function processTradingViewAlert(payload: TradingViewAlertPayload): Promise<{ accepted: boolean; reason?: string }> {
+  // El ticker/resolución que manda TradingView no coincide con el formato de símbolo/timeframe
+  // que usa ccxt contra Bybit (ej. "BTCUSDT.P" -> "BTC/USDT:USDT", "60" -> "1h"). Se traduce una
+  // sola vez aquí y de ahí en adelante todo el pipeline usa el formato ccxt.
+  const symbol = mapTradingViewSymbol(payload.symbol);
+  const timeframe = mapTradingViewTimeframe(payload.timeframe);
+
   if (payload.action !== 'entry') {
     // Las salidas manuales desde TradingView no se ejecutan en esta versión:
     // las salidas las gestiona el stop loss / take profit puestos en el exchange.
     recordSignal({
-      symbol: payload.symbol,
+      symbol,
       side: payload.side,
       action: payload.action,
       strategy: payload.strategy,
@@ -23,17 +30,17 @@ export async function processTradingViewAlert(payload: TradingViewAlertPayload):
   }
 
   const signal: TradeSignal = {
-    symbol: payload.symbol,
+    symbol,
     side: payload.side,
     strategy: payload.strategy,
-    entryTimeframe: payload.timeframe,
+    entryTimeframe: timeframe,
   };
 
   const balance = await bybit.fetchBalanceUSDT();
   const riskCheck = checkRiskBeforeTrade(balance);
   if (!riskCheck.allowed) {
     const signalId = recordSignal({
-      symbol: payload.symbol,
+      symbol,
       side: payload.side,
       action: payload.action,
       strategy: payload.strategy,
@@ -41,14 +48,14 @@ export async function processTradingViewAlert(payload: TradingViewAlertPayload):
       accepted: false,
       rejectReason: riskCheck.reason,
     });
-    await notifyTelegram(`⛔ Señal rechazada por gestión de riesgo (#${signalId})\n${payload.symbol} ${payload.side}\nMotivo: ${riskCheck.reason}`);
+    await notifyTelegram(`⛔ Señal rechazada por gestión de riesgo (#${signalId})\n${symbol} ${payload.side} [${payload.strategy}]\nMotivo: ${riskCheck.reason}`);
     return { accepted: false, reason: riskCheck.reason };
   }
 
   const confirmation = await confirmSignal(signal);
   if (!confirmation.accepted) {
     const signalId = recordSignal({
-      symbol: payload.symbol,
+      symbol,
       side: payload.side,
       action: payload.action,
       strategy: payload.strategy,
@@ -56,12 +63,12 @@ export async function processTradingViewAlert(payload: TradingViewAlertPayload):
       accepted: false,
       rejectReason: confirmation.reason,
     });
-    await notifyTelegram(`⚠️ Señal descartada tras confirmación (#${signalId})\n${payload.symbol} ${payload.side}\nMotivo: ${confirmation.reason}`);
+    await notifyTelegram(`⚠️ Señal descartada tras confirmación (#${signalId})\n${symbol} ${payload.side} [${payload.strategy}]\nMotivo: ${confirmation.reason}`);
     return { accepted: false, reason: confirmation.reason };
   }
 
   const signalId = recordSignal({
-    symbol: payload.symbol,
+    symbol,
     side: payload.side,
     action: payload.action,
     strategy: payload.strategy,
@@ -82,7 +89,7 @@ export async function processTradingViewAlert(payload: TradingViewAlertPayload):
 
   await executeEntry({
     signalId,
-    symbol: payload.symbol,
+    symbol,
     side: payload.side,
     amount,
     entryPrice: confirmation.entryPrice,
@@ -91,7 +98,7 @@ export async function processTradingViewAlert(payload: TradingViewAlertPayload):
   });
 
   await notifyTelegram(
-    `✅ Entrada ejecutada (#${signalId})\n${payload.symbol} ${payload.side.toUpperCase()}\nEntrada: ${confirmation.entryPrice}\nSL: ${confirmation.stopLossPrice.toFixed(4)} · TP: ${confirmation.takeProfitPrice.toFixed(4)}\nTamaño: ${amount.toFixed(6)}\nModo: ${bybit.isTestnet ? 'TESTNET' : 'LIVE'}`,
+    `✅ Entrada ejecutada (#${signalId})\n${symbol} ${payload.side.toUpperCase()} [${payload.strategy}]\nEntrada: ${confirmation.entryPrice}\nSL: ${confirmation.stopLossPrice.toFixed(4)} · TP: ${confirmation.takeProfitPrice.toFixed(4)}\nTamaño: ${amount.toFixed(6)}\nModo: ${bybit.isTestnet ? 'TESTNET' : 'LIVE'}`,
   );
 
   return { accepted: true };

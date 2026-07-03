@@ -84,6 +84,14 @@ tendencia/momentum/volatilidad/volumen contra datos en vivo del exchange. Si la 
 no se sostiene en el momento de llegar, la rechaza y queda registrada en el dashboard con
 el motivo.
 
+Nota: el JSON de arriba (con `{{ticker}}` en el campo Message del diálogo de alertas)
+sirve para una alerta simple sin código. Si tu indicador ya arma el mensaje con `alert()`
+dentro del propio script Pine (como el indicador multi-función con TL Alerts/Supertrend/
+Koncorde), el campo Message del diálogo se ignora — el string lo controla el script. Ver
+[`docs/pine-integration.md`](docs/pine-integration.md) para ese caso, incluyendo el mapeo
+de símbolo/timeframe (`TRADINGVIEW_SYMBOL_MAP`) que hace falta porque TradingView y ccxt/
+Bybit no usan el mismo formato de ticker ni de resolución.
+
 ## Kill switch
 
 - Se activa automáticamente si se alcanza `MAX_DAILY_LOSS_PCT` de pérdida en el día.
