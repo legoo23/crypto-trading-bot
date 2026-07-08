@@ -15,6 +15,11 @@ Lecciones tecnicas especificas de este proyecto. Las lecciones generalizables vi
 - El "mapa de liquidaciones" de Coinglass es una estimacion basada en OI + supuestos de apalancamiento.
 - Ningun exchange publica posiciones individuales de traders. Cualquier heatmap es una aproximacion.
 
+**Google Cloud Run: permisos necesarios para deploy desde source**
+- La cuenta de servicio de Cloud Build (`790920529308@cloudbuild.gserviceaccount.com`) necesita `roles/artifactregistry.writer` a nivel de repositorio, no solo de proyecto.
+- La cuenta de computo (`790920529308-compute@developer.gserviceaccount.com`) necesita `roles/secretmanager.secretAccessor` para leer secretos en tiempo de ejecucion.
+- Otorgar roles a nivel de proyecto no siempre se propaga al repositorio de Artifact Registry — otorgarlo directamente con `gcloud artifacts repositories add-iam-policy-binding`.
+
 **Windows: npm install con modulos nativos requiere herramientas de build**
 - `better-sqlite3` compila codigo nativo y necesita Python 3.x y Visual Studio Build Tools en Windows.
 - `windows-build-tools` de npm esta obsoleto y roto con Node 20+. No usarlo.

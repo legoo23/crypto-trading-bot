@@ -39,6 +39,13 @@ Ultima actualizacion: 2026-07-08
 
 ## COMPLETADO
 
+- [x] Deploy en Google Cloud Run exitoso (2026-07-08)
+- [x] URL publica: https://crypto-trading-bot-790920529308.us-central1.run.app
+- [x] Secretos configurados en Secret Manager (BYBIT_API_KEY, BYBIT_API_SECRET, TRADINGVIEW_WEBHOOK_SECRET)
+- [x] Dashboard accesible desde cualquier dispositivo
+
+---
+
 - [x] MVP: webhook TradingView + confirmacion multi-factor + ejecucion Bybit via ccxt (2026-07-07)
 - [x] Soporte multi-estrategia: TL Alerts, Supertrend, Koncorde (2026-07-07)
 - [x] Estrategia contrarian: funding rate + RSI (2026-07-07)
