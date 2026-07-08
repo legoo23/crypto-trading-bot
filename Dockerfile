@@ -12,5 +12,6 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/web/dist ./web/dist
 COPY --from=build /app/node_modules ./node_modules
 COPY package*.json ./
+RUN mkdir -p data
 EXPOSE 3000
 CMD ["node", "dist/server.cjs"]
