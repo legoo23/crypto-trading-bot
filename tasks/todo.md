@@ -12,12 +12,18 @@ Ultima actualizacion: 2026-07-08
 
 ## PENDIENTE
 
+### Testnet — siguiente sesion
+
+- [ ] Fondear cuenta Bybit testnet (faucet en testnet.bybit.com — solicitar USDT simulados)
+- [ ] Con fondos en testnet: repetir prueba curl y verificar que el bot ejecuta la orden completa (confirmacion multi-factor + orden en Bybit)
+- [ ] Instalar y configurar ngrok para exponer el webhook a TradingView
+- [ ] Conectar indicador de TradingView (definir cual estrategia usar) y crear alerta con webhook URL
+
 ### Infraestructura / Deploy
 
-- [ ] Definir plataforma de deploy (VPS, Cloud Run, Railway, Fly.io)
+- [ ] Definir plataforma de deploy permanente (recomendacion: Fly.io por soporte de volumen SQLite)
 - [ ] Crear directorio `data/` en produccion y montarlo como volumen persistente (SQLite)
 - [ ] Configurar variables de entorno en el servidor de produccion (ver `.env.example`)
-- [ ] Probar flujo completo en Bybit testnet antes de habilitar dinero real
 
 ### Features
 
@@ -27,7 +33,6 @@ Ultima actualizacion: 2026-07-08
 
 ### Calidad
 
-- [ ] Tests de integracion para el webhook (simular payload de TradingView y verificar flujo completo)
 - [ ] Agregar `.dockerignore` explicito (actualmente no existe; el build de Docker copia todo el repo)
 
 ---
@@ -42,3 +47,8 @@ Ultima actualizacion: 2026-07-08
 - [x] Build verificado: lint limpio, 0 vulnerabilidades, build exitoso (2026-07-08)
 - [x] CLAUDE.md del proyecto creado (2026-07-08)
 - [x] Estructura tasks/ creada (2026-07-08)
+- [x] Entorno local Windows configurado: Git, Node 20, Python 3.11, VS Build Tools (2026-07-08)
+- [x] npm install exitoso en Windows (2026-07-08)
+- [x] Servidor corriendo en testnet: dashboard visible en http://localhost:3000 (2026-07-08)
+- [x] Webhook probado con curl: recibe señal, valida secreto, pasa al gestor de riesgo (2026-07-08)
+- [x] Confirmado: rechazo por balance 0 es comportamiento correcto del gestor de riesgo (2026-07-08)

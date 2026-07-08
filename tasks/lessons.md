@@ -15,6 +15,17 @@ Lecciones tecnicas especificas de este proyecto. Las lecciones generalizables vi
 - El "mapa de liquidaciones" de Coinglass es una estimacion basada en OI + supuestos de apalancamiento.
 - Ningun exchange publica posiciones individuales de traders. Cualquier heatmap es una aproximacion.
 
+**Windows: npm install con modulos nativos requiere herramientas de build**
+- `better-sqlite3` compila codigo nativo y necesita Python 3.x y Visual Studio Build Tools en Windows.
+- `windows-build-tools` de npm esta obsoleto y roto con Node 20+. No usarlo.
+- Solucion correcta: instalar manualmente Python 3.11.9 (ultima con instalador binario para Windows) desde python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe y Visual Studio Build Tools 2022 con el workload "Desarrollo para escritorio con C++".
+- Node 24 no tiene binarios precompilados de `better-sqlite3`. Usar Node 20 LTS.
+- PowerShell bloquea scripts por defecto: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` antes de correr npm.
+
+**Windows: `curl` en PowerShell no es curl de Unix**
+- En PowerShell, `curl` es un alias de `Invoke-WebRequest`, no el binario de curl.
+- Los flags `-H`, `-d`, `-X` no funcionan igual. Usar `Invoke-WebRequest` con sus parametros nativos o instalar curl.exe por separado.
+
 **syminfo.ticker vs {{ticker}} en Pine Script**
 - `{{ticker}}` y `{{interval}}` son placeholders del campo "Message" del dialogo de alertas de TradingView.
 - Dentro de un `alert()` en el codigo Pine, hay que usar `syminfo.ticker` y `timeframe.period` directamente.
