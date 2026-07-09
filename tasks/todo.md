@@ -1,6 +1,6 @@
 # tasks/todo.md — Crypto Trading Bot
 
-Ultima actualizacion: 2026-07-08
+Ultima actualizacion: 2026-07-09
 
 ---
 
@@ -14,10 +14,8 @@ Ultima actualizacion: 2026-07-08
 
 ### Testnet — siguiente sesion
 
-- [ ] Fondear cuenta Bybit testnet (faucet en testnet.bybit.com — solicitar USDT simulados)
-- [ ] Con fondos en testnet: repetir prueba curl y verificar que el bot ejecuta la orden completa (confirmacion multi-factor + orden en Bybit)
-- [ ] Instalar y configurar ngrok para exponer el webhook a TradingView
-- [ ] Conectar indicador de TradingView (definir cual estrategia usar) y crear alerta con webhook URL
+- [ ] Esperar condiciones de mercado que cumplan confirmacion multi-factor (RSI en rango + tendencia alineada) para ver orden ejecutada en Bybit
+- [ ] Conectar indicador de TradingView y crear alerta con URL de Cloud Run (https://crypto-trading-bot-790920529308.asia-east1.run.app/webhook/tradingview)
 
 ### Infraestructura / Deploy
 
@@ -39,10 +37,14 @@ Ultima actualizacion: 2026-07-08
 
 ## COMPLETADO
 
-- [x] Deploy en Google Cloud Run exitoso (2026-07-08)
-- [x] URL publica: https://crypto-trading-bot-790920529308.us-central1.run.app
+- [x] Deploy en Google Cloud Run asia-east1 exitoso (2026-07-09)
+- [x] URL publica: https://crypto-trading-bot-790920529308.asia-east1.run.app
 - [x] Secretos configurados en Secret Manager (BYBIT_API_KEY, BYBIT_API_SECRET, TRADINGVIEW_WEBHOOK_SECRET)
 - [x] Dashboard accesible desde cualquier dispositivo
+- [x] Fix kill switch falso (balance=0 ya no dispara kill switch) (2026-07-09)
+- [x] Fix lectura de balance Bybit UTA: fondos en Unified Trading leidos correctamente (2026-07-09)
+- [x] Flujo completo verificado: webhook -> validacion secreto -> balance -> confirmacion multi-factor -> rechazo por RSI/tendencia (2026-07-09)
+- [x] 10,000 USDT testnet en Unified Trading, bot conectado y evaluando señales (2026-07-09)
 
 ---
 
