@@ -35,15 +35,18 @@ class BybitConnector {
   }
 
   async fetchBalanceUSDT(): Promise<number> {
-    const balance = await this.exchange.fetchBalance();
-    // ccxt unified: balance['USDT'].total OR balance.total['USDT']
-    const byCurrency = balance['USDT'];
-    if (byCurrency?.total !== undefined && byCurrency.total > 0) return byCurrency.total;
-    const byTotal = (balance.total as unknown as Record<string, number> | undefined);
-    if (byTotal?.['USDT'] !== undefined && byTotal['USDT'] > 0) return byTotal['USDT'];
-    const byFree = (balance.free as unknown as Record<string, number> | undefined);
-    if (byFree?.['USDT'] !== undefined && byFree['USDT'] > 0) return byFree['USDT'];
-    console.warn('[bybit] fetchBalanceUSDT: balance USDT=0, raw keys:', Object.keys(balance), '| total:', balance.total, '| free:', balance.free);
+    // Bybit UTA testnet requires accountType=UNIFIED; try both to support all account types
+    const accountTypes = ['UNIFIED', 'CONTRACT', 'SPOT'];
+    for (const accountType of accountTypes) {
+      const balance = await this.exchange.fetchBalance({ type: accountType });
+      const byCurrency = balance['USDT'];
+      if (byCurrency?.total !== undefined && byCurrency.total > 0) return byCurrency.total;
+      const byTotal = (balance.total as unknown as Record<string, number> | undefined);
+      if (byTotal?.['USDT'] !== undefined && byTotal['USDT'] > 0) return byTotal['USDT'];
+      const byFree = (balance.free as unknown as Record<string, number> | undefined);
+      if (byFree?.['USDT'] !== undefined && byFree['USDT'] > 0) return byFree['USDT'];
+    }
+    console.warn('[bybit] fetchBalanceUSDT: USDT=0 en todos los tipos de cuenta (UNIFIED/CONTRACT/SPOT)');
     return 0;
   }
 
