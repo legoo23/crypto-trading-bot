@@ -36,14 +36,14 @@ class BybitConnector {
 
   async fetchBalanceUSDT(): Promise<number> {
     const balance = await this.exchange.fetchBalance();
-    // Bybit UTA: balance may live under 'USDT' or as free+used on the CONTRACT account
-    const usdt = balance['USDT'];
-    if (usdt?.total !== undefined && usdt.total > 0) return usdt.total;
-    // Fallback: sum free + used if total missing (some testnet UTA responses)
-    const free = usdt?.free ?? 0;
-    const used = usdt?.used ?? 0;
-    if (free + used > 0) return free + used;
-    console.warn('[bybit] fetchBalanceUSDT: balance USDT=0, raw keys:', Object.keys(balance));
+    // ccxt unified: balance['USDT'].total OR balance.total['USDT']
+    const byCurrency = balance['USDT'];
+    if (byCurrency?.total !== undefined && byCurrency.total > 0) return byCurrency.total;
+    const byTotal = (balance.total as unknown as Record<string, number> | undefined);
+    if (byTotal?.['USDT'] !== undefined && byTotal['USDT'] > 0) return byTotal['USDT'];
+    const byFree = (balance.free as unknown as Record<string, number> | undefined);
+    if (byFree?.['USDT'] !== undefined && byFree['USDT'] > 0) return byFree['USDT'];
+    console.warn('[bybit] fetchBalanceUSDT: balance USDT=0, raw keys:', Object.keys(balance), '| total:', balance.total, '| free:', balance.free);
     return 0;
   }
 
