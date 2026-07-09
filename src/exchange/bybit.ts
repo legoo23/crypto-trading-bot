@@ -39,6 +39,8 @@ class BybitConnector {
     const accountTypes = ['UNIFIED', 'CONTRACT', 'SPOT'];
     for (const accountType of accountTypes) {
       const balance = await this.exchange.fetchBalance({ type: accountType });
+      const info = balance.info as Record<string, unknown> | undefined;
+      console.warn(`[bybit] fetchBalanceUSDT [${accountType}] info.retCode=${info?.retCode} info.retMsg=${info?.retMsg} result.list=${JSON.stringify((info?.result as Record<string,unknown>)?.list)?.slice(0, 300)}`);
       const byCurrency = balance['USDT'];
       if (byCurrency?.total !== undefined && byCurrency.total > 0) return byCurrency.total;
       const byTotal = (balance.total as unknown as Record<string, number> | undefined);
