@@ -53,9 +53,13 @@ export function checkRiskBeforeTrade(accountBalance: number): RiskCheckResult {
     return { allowed: false, reason: `Máximo de posiciones abiertas alcanzado (${env.maxOpenPositions})` };
   }
 
+  if (accountBalance <= 0) {
+    return { allowed: false, reason: 'Balance no disponible o cero, operación bloqueada por seguridad' };
+  }
+
   const dailyLossLimit = -(accountBalance * (env.maxDailyLossPct / 100));
   const pnlToday = todayRealizedPnl();
-  if (pnlToday <= dailyLossLimit) {
+  if (pnlToday < dailyLossLimit) {
     engageKillSwitch(`Pérdida diaria máxima alcanzada (${pnlToday.toFixed(2)} USDT, límite ${dailyLossLimit.toFixed(2)})`);
     return { allowed: false, reason: `Pérdida diaria máxima alcanzada, kill switch activado` };
   }
@@ -83,7 +87,7 @@ export function calculatePositionSize(params: {
 export function reevaluateKillSwitchAfterTradeClose(accountBalance: number): void {
   const dailyLossLimit = -(accountBalance * (env.maxDailyLossPct / 100));
   const pnlToday = todayRealizedPnl();
-  if (pnlToday <= dailyLossLimit && !isKillSwitchEngaged()) {
+  if (accountBalance > 0 && pnlToday < dailyLossLimit && !isKillSwitchEngaged()) {
     engageKillSwitch(`Pérdida diaria máxima alcanzada (${pnlToday.toFixed(2)} USDT, límite ${dailyLossLimit.toFixed(2)})`);
   }
 }

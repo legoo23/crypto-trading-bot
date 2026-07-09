@@ -36,7 +36,15 @@ class BybitConnector {
 
   async fetchBalanceUSDT(): Promise<number> {
     const balance = await this.exchange.fetchBalance();
-    return balance['USDT']?.total ?? 0;
+    // Bybit UTA: balance may live under 'USDT' or as free+used on the CONTRACT account
+    const usdt = balance['USDT'];
+    if (usdt?.total !== undefined && usdt.total > 0) return usdt.total;
+    // Fallback: sum free + used if total missing (some testnet UTA responses)
+    const free = usdt?.free ?? 0;
+    const used = usdt?.used ?? 0;
+    if (free + used > 0) return free + used;
+    console.warn('[bybit] fetchBalanceUSDT: balance USDT=0, raw keys:', Object.keys(balance));
+    return 0;
   }
 
   async fetchOpenPositions(): Promise<Position[]> {
